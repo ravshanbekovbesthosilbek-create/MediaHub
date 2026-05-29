@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDIAHUB PRO - Enterprise Video Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .main-bg {
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bg-kino { background-image: linear-gradient(-45deg, #09090b, #111115, #1c1917, #000000); }
+        .bg-anime { background-image: linear-gradient(-45deg, #020617, #0f172a, #1e1b4b, #020617); }
+        .bg-multik { background-image: linear-gradient(-45deg, #1e1b4b, #2e1065, #0f172a, #1a103c); }
+        .bg-favorites { background-image: linear-gradient(-45deg, #1c1917, #292524, #44403c, #000000); }
+        .bg-premium-secret { background-image: linear-gradient(-45deg, #1e1b4b, #4c1d95, #701a75, #000000); }
+        
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #09090b; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+        
+        .carousel-container::-webkit-scrollbar { display: none; }
+        
+        .player-touch-zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 35%;
+            z-index: 20;
+        }
+        .touch-left { left: 0; }
+        .touch-right { right: 0; }
+        .touch-center { left: 35%; width: 30%; }
+
+        .theater-mode-active {
+            max-width: 100% !important;
+            width: 100% !important;
+            height: 85vh !important;
+        }
+        .reply-box { border-left: 2px solid #4b5563; margin-left: 1rem; padding-left: 0.75rem; }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .marquee-text { animation: marquee 25s linear infinite; }
+
+        .video-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-left-color: #f59e0b;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-black text-white font-sans antialiased main-bg bg-kino min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-black">
+
+    <div id="toastContainer" class="fixed top-5 right-5 z-[350] space-y-3 pointer-events-none"></div>
+
+    <div id="globalAnnouncementWrapper" class="bg-amber-500 text-black text-xs font-black py-2 overflow-hidden sticky top-0 z-[50] border-b border-amber-600 shadow-md">
+        <div class="whitespace-nowrap inline-block marquee-text" id="announcementText">
+            MEDIAHUB PRO TIZIMIGA XUSH KELIBSIZ! AKSIYA VA PREMYERALARNI O'TKAZIB YUBORMANG!
+        </div>
+    </div>
+
+    <div id="ageModal" class="fixed inset-0 bg-zinc-950/98 z-[200] flex items-center justify-center p-4 backdrop-blur-lg">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center shadow-2xl relative">
+            <div class="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span class="text-amber-500 text-2xl font-black">18+</span>
+            </div>
+            <h2 class="text-2xl font-black text-amber-500 tracking-wider mb-2 uppercase">KIRISH RUXSATI VA NIZOMI</h2>
+            <p class="text-zinc-400 text-xs mb-6 leading-relaxed">Platformadagi eksklyuziv, mistik va premium kontentlardan foydalanish uchun quyidagi 3 ta shartni tasdiqlashingiz shart.</p>
+            
+            <div class="text-left space-y-4 mb-6 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="checkbox" id="checkAge" class="w-5 h-5 rounded border-zinc-800 bg-zinc-900 text-amber-500 focus:ring-amber-500 mt-0.5">
+                    <span class="text-zinc-400 text-xs font-medium group-hover:text-white transition"><b>1. Yosh chegarasi:</b> Men 18 yoshga to'lganman yoki undan kattaman.</span>
+                </label>
+                <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="checkbox" id="checkHealth" class="w-5 h-5 rounded border-zinc-800 bg-zinc-900 text-amber-500 focus:ring-amber-500 mt-0.5">
+                    <span class="text-zinc-400 text-xs font-medium group-hover:text-white transition"><b>2. Salomatlik:</b> Ruhiy holatim va asab tizimim mistik hamda triller syujetlarni ko'rishga tayyor.</span>
+                </label>
+                <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="checkbox" id="checkTerms" class="w-5 h-5 rounded border-zinc-800 bg-zinc-900 text-amber-500 focus:ring-amber-500 mt-0.5">
+                    <span class="text-zinc-400 text-xs font-medium group-hover:text-white transition"><b>3. Mualliflik huquqi:</b> Saytdagi multimedia kontentlarini ruxsatsiz ko'chirmaslikka roziman.</span>
+                </label>
+            </div>
+            <div class="flex gap-3 mb-4">
+                <button onclick="verifyAge()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-3 rounded-xl transition text-xs tracking-wider uppercase">Tasdiqlayman</button>
+                <button onclick="exitSite()" class="flex-1 bg-zinc-950 hover:bg-zinc-800 text-red-500 font-bold py-3 rounded-xl transition border border-zinc-800 text-xs uppercase">Rad Etish</button>
+            </div>
+            <div class="text-[11px] font-black tracking-widest text-zinc-500 border-t border-zinc-800/60 pt-3 uppercase">
+                © C R E A T O R [ Muallif ] - <span class="text-amber-500">𝙷𝚘𝚜𝚒𝚕𝚋𝚎𝚔</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainContent" class="opacity-0 transition-opacity duration-500 relative z-10 flex flex-col justify-between min-h-screen">
+        <header class="bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-900 sticky top-0 z-40 shadow-xl">
+            <div class="container mx-auto px-4 py-4 flex flex-col xl:flex-row gap-4 items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 self-start xl:self-auto">
+                    <a href="#" onclick="switchTab('kino')" class="flex items-center text-3xl font-extrabold tracking-tighter group">
+                        <span class="text-white pr-1">Media</span>
+                        <span class="bg-amber-500 text-black px-2.5 py-1 rounded-xl font-black">hub</span>
+                    </a>
+                    <span class="text-[10px] font-black bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-md text-zinc-400 tracking-wider self-start sm:self-auto uppercase">© 𝙷𝚘𝚜𝚒𝚕𝚋𝚎𝚔</span>
+                </div>
+                
+                <nav class="flex bg-zinc-900 p-1 rounded-2xl border border-zinc-800 w-full xl:w-[650px] justify-between items-center overflow-x-auto custom-scroll">
+                    <button onclick="switchTab('kino')" id="tab-kino" class="flex-1 text-center py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black bg-amber-500 text-black transition duration-300 min-w-[100px]">KINOLAR</button>
+                    <button onclick="switchTab('anime')" id="tab-anime" class="flex-1 text-center py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black text-gray-400 hover:text-white transition duration-300 min-w-[100px]">ANIMELER</button>
+                    <button onclick="switchTab('multik')" id="tab-multik" class="flex-1 text-center py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black text-gray-400 hover:text-white transition duration-300 min-w-[100px]">MULTIKLAR</button>
+                    <button onclick="switchTab('favorites')" id="tab-favorites" class="flex-1 text-center py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black text-red-400 hover:text-red-300 transition duration-300 min-w-[110px]">❤️ SEVIMLILAR</button>
+                </nav>
+                
+                <div class="relative inline-block text-left w-full xl:w-auto">
+                    <button onclick="toggleStatsDropdown()" class="flex flex-wrap items-center gap-3 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl text-xs w-full justify-between sm:justify-start hover:border-amber-500 transition">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <span class="text-zinc-400 font-medium">Live: <b id="liveUsersCount" class="text-emerald-400 font-mono">110</b></span>
+                        </div>
+                        <div class="border-l border-zinc-800 h-4 mx-1 hidden sm:block"></div>
+                        <span class="text-zinc-300">Statistika 📊 <b id="totalViewsCount" class="text-amber-500 font-mono">0</b></span>
+                    </button>
+                    
+                    <div id="statsDropdown" class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl z-[100] p-3 space-y-2 text-xs">
+                        <div class="text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800 pb-1">Trafik tahlili</div>
+                        <div class="flex justify-between text-zinc-400"><span>Bugun (Kunlik):</span><b id="statDaily" class="text-white font-mono">0</b></div>
+                        <div class="flex justify-between text-zinc-400"><span>Shu oy (Oylik):</span><b id="statMonthly" class="text-white font-mono">0</b></div>
+                        <div class="flex justify-between text-zinc-400"><span>Shu yil (Yillik):</span><b id="statYearly" class="text-white font-mono">0</b></div>
+                        <div class="border-t border-zinc-800 my-1"></div>
+                        <div class="flex justify-between font-bold text-amber-400"><span>Yaratilgandan beri:</span><b id="statTotal" class="font-mono">0</b></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container mx-auto px-4 mt-4 max-w-7xl">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-zinc-900/50 backdrop-blur-md p-3 rounded-2xl border border-zinc-800/80 shadow-2xl">
+                <a href="https://t.me/MediaHub_Uz_bot" target="_blank" class="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white font-black py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition duration-300 shadow-lg">
+                    <span>🤖 Bizning Telegram Botimiz</span>
+                </a>
+                <a href="https://t.me/Activist_Uz" target="_blank" class="flex items-center justify-center gap-2 bg-zinc-950 border border-zinc-800 hover:border-amber-500 text-amber-400 font-black py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition duration-300 shadow-lg">
+                    <span>👨‍💻 Admin Bilan Bog'lanish</span>
+                </a>
+                <a href="https://instagram.com/_activistuz_" target="_blank" class="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 via-pink-600 to-yellow-500 hover:opacity-90 text-white font-black py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition duration-300 shadow-lg">
+                    <span>📸 Instagram Profilimiz</span>
+                </a>
+            </div>
+        </div>
+
+        <div id="globalAdBannerWrapper" class="container mx-auto px-4 mt-4 max-w-7xl">
+            <div id="adBannerClickNode" onclick="triggerAdRedirect()" class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden p-1 flex justify-between items-center cursor-pointer hover:border-amber-500 transition duration-300 group shadow-xl">
+                <img id="adBannerImage" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200" class="w-full h-24 object-cover rounded-xl group-hover:scale-[1.01] transition duration-700" alt="Banner AD">
+            </div>
+        </div>
+
+        <main class="container mx-auto px-4 py-6 max-w-7xl flex-grow">
+            <div class="mb-8 bg-zinc-950/40 p-4 rounded-2xl border border-zinc-900/60 backdrop-blur-sm flex flex-col sm:flex-row gap-3 shadow-2xl">
+                <input type="text" id="searchInput" oninput="searchMovies()" placeholder="Kino nomi, unikal kodi yoki maxfiy kalit so'zni kiriting..." class="flex-grow bg-zinc-900/95 border border-zinc-800 focus:border-amber-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none placeholder-zinc-500 transition shadow-inner">
+                <select id="filterYear" onchange="searchMovies()" class="bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-500 cursor-pointer font-bold">
+                    <option value="all">Barcha yillar</option>
+                    <option value="2026">2026-yil</option>
+                    <option value="2025">2025-yil</option>
+                    <option value="2024">2024-yil</option>
+                </select>
+            </div>
+
+            <div id="carouselWrapper" class="mb-8 bg-zinc-950/40 p-4 rounded-2xl border border-zinc-900/60 shadow-xl relative">
+                <h2 class="text-xs font-black tracking-widest text-zinc-400 uppercase mb-3 flex items-center gap-2">🔥 PREMYERA VA REYTINGI BALAND KONTENTLAR</h2>
+                <div id="carouselContainer" class="carousel-container flex gap-4 overflow-x-auto pb-2 custom-scroll"></div>
+            </div>
+
+            <h2 id="categoryTitle" class="text-base sm:text-lg font-black tracking-wider text-amber-500 uppercase border-l-4 border-amber-500 pl-3 mb-6">🎬 Dahshatli va Detektiv Kinolar</h2>
+            
+            <div id="moviesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5"></div>
+        </main>
+
+        <footer class="bg-zinc-950 border-t border-zinc-900 py-6 text-center space-y-2">
+            <p class="text-zinc-400 text-xs font-black tracking-widest uppercase">© C R E A T O R [ Muallif ] - <span class="text-amber-500">𝙷𝚘𝚜𝚒𝚕𝚋𝚎𝚔</span></p>
+            <p class="text-zinc-600 text-[10px] tracking-widest uppercase">&copy; 2026 MEDIAHUB ENTERPRISE. Barcha huquqlar himoyalangan.</p>
+        </footer>
+    </div>
+
+    <div id="forcedAdModal" class="fixed inset-0 bg-black/99 z-[400] hidden items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 max-w-xl w-full space-y-4 text-center">
+            <span class="bg-amber-500 text-black font-black text-[9px] px-2 py-0.5 rounded uppercase tracking-wider">Homiylik Reklamasi</span>
+            <h4 class="text-md font-black uppercase text-white tracking-wide">Videoni ko'rish uchun reklamani tomosha qiling</h4>
+            <div class="aspect-video bg-black rounded-xl overflow-hidden relative border border-zinc-800">
+                <video id="forcedAdVideoComponent" class="w-full h-full object-contain" playsinline></video>
+                <img id="forcedAdImageComponent" class="w-full h-full object-cover hidden" alt="Forced AD Image">
+            </div>
+            <div class="flex justify-between items-center bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+                <span class="text-xs text-zinc-400 font-medium" id="adTimerFeedback">Reklama tugashiga: 15 soniya qoldi</span>
+                <button id="skipAdActionButton" disabled onclick="skipForcedAdAction()" class="bg-zinc-800 text-zinc-500 text-xs font-black px-4 py-2 rounded-xl uppercase transition cursor-not-allowed">O'tkazib yuborish</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailsModal" class="fixed inset-0 bg-black/98 z-[250] hidden items-center justify-center p-2 sm:p-4 backdrop-blur-md overflow-y-auto custom-scroll">
+        <div id="modalLayoutContainer" class="bg-zinc-950 rounded-3xl max-w-5xl w-full overflow-hidden border border-zinc-800 shadow-2xl flex flex-col transition-all duration-500 my-auto">
+            <div class="flex justify-between items-center p-4 border-b border-zinc-900 bg-zinc-900/50">
+                <div class="flex items-center gap-3">
+                    <h3 id="modalTitle" class="text-sm font-black text-white uppercase tracking-wide"></h3>
+                    <span id="continueWatchingBadge" class="hidden bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-mono">Tarix mavjud</span>
+                    <span class="text-[10px] font-black border border-zinc-800 px-2 py-0.5 rounded bg-zinc-950 text-zinc-400 uppercase">© 𝙷𝚘𝚜𝚒𝚕𝚋𝚎𝚔</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="toggleTheaterBtn" onclick="toggleTheaterMode()" class="text-zinc-400 hover:text-amber-400 text-xs font-bold px-2 py-1 rounded border border-zinc-800 bg-zinc-900 hidden">🎭 Teatr Rejimi</button>
+                    <button onclick="closeDetailsModal()" class="text-zinc-500 hover:text-white text-3xl font-light px-2">&times;</button>
+                </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row">
+                <div class="w-full lg:w-3/5 bg-zinc-900 relative aspect-video bg-black flex items-center justify-center" id="modalMediaContainer">
+                    <img id="modalPosterImg" class="w-full h-full object-cover" src="" alt="Poster">
+                    
+                    <div id="videoPlayerWrapper" class="hidden w-full h-full bg-black relative flex flex-col justify-between group overflow-hidden">
+                        <div class="player-touch-zone touch-left" id="playerZoneLeft"></div>
+                        <div class="player-touch-zone touch-center" id="playerZoneCenter"></div>
+                        <div class="player-touch-zone touch-right" id="playerZoneRight"></div>
+                        
+                        <div id="playerBufferingLoader" class="absolute inset-0 flex items-center justify-center bg-black/60 z-30 hidden">
+                            <div class="video-spinner"></div>
+                        </div>
+
+                        <div id="gestureFeedback" class="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-black text-sm z-50 pointer-events-none opacity-0 transition-opacity duration-200"></div>
+
+                        <video id="mainVideoPlayer" class="w-full h-full object-contain z-0" playsinline></video>
+
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 space-y-2">
+                            <input type="range" id="playerProgressBar" min="0" max="100" value="0" step="0.1" oninput="seekVideo(this.value)" class="w-full accent-amber-500 bg-zinc-800 h-1 rounded cursor-pointer">
+                            
+                            <div class="flex justify-between items-center text-xs">
+                                <div class="flex items-center gap-3">
+                                    <button onclick="togglePlayPause()" id="customPlayBtn" class="bg-amber-500 text-black px-3 py-1 rounded font-black text-[10px] uppercase">PLAY</button>
+                                    <span class="text-zinc-400 font-mono text-[11px]" id="playerTimeDisplay">00:00 / 00:00</span>
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    <button onclick="toggleFullScreen()" class="bg-zinc-900 border border-zinc-800 rounded px-2 py-0.5 text-[10px] text-zinc-300 font-bold uppercase hover:text-white">🖥️ Fullscreen</button>
+                                    <select id="playerSpeedSelector" onchange="changePlayerSpeed(this.value)" class="bg-zinc-900 border border-zinc-800 rounded px-1.5 py-0.5 text-[10px] text-zinc-300 focus:outline-none">
+                                        <option value="1.0" selected>Tezlik: 1.0x</option>
+                                        <option value="0.5">0.5x</option>
+                                        <option value="1.25">1.25x</option>
+                                        <option value="1.5">1.5x</option>
+                                        <option value="2.0">2.0x</option>
+                                    </select>
+                                    <select id="playerQualitySelector" onchange="simulateQualitySwitch(this.value)" class="bg-zinc-900 border border-zinc-800 rounded px-1.5 py-0.5 text-[10px] text-zinc-300 focus:outline-none">
+                                        <option value="1080p" selected>Sifat: 1080p HD</option>
+                                        <option value="720p">720p Auto</option>
+                                        <option value="480p">480p SD</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="modalCodeBadge" class="absolute top-3 left-3 bg-amber-500 text-black text-[10px] font-black px-2 py-0.5 rounded-md z-20"></div>
+                </div>
+                
+                <div class="w-full lg:w-2/5 p-4 sm:p-6 flex flex-col justify-between space-y-4 bg-zinc-950 border-t lg:border-t-0 lg:border-l border-zinc-900">
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-start">
+                            <span id="modalGenre" class="text-xs text-amber-500 font-bold uppercase tracking-wider block"></span>
+                            <div class="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-amber-400 text-xs font-black font-mono">
+                                ⭐ <span id="computedRatingValue">0.0</span>
+                            </div>
+                        </div>
+                        <p id="modalDesc" class="text-zinc-400 text-xs leading-relaxed max-h-[100px] overflow-y-auto custom-scroll pr-1"></p>
+                        
+                        <div class="bg-zinc-900/60 p-3 rounded-xl border border-zinc-800 space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <button onclick="castVote('like')" class="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/20 transition font-bold">👍 <span id="voteLikeCount">0</span></button>
+                                <span class="text-[10px] font-mono text-zinc-400 font-bold" id="voteRatioText">Ratio: 0% / 0%</span>
+                                <button onclick="castVote('dislike')" class="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 transition font-bold">👎 <span id="voteDislikeCount">0</span></button>
+                            </div>
+                            <div class="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden flex">
+                                <div id="voteRatioProgress" class="bg-emerald-500 h-full transition-all duration-500" style="width: 50%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-zinc-900 pt-3 space-y-2">
+                        <span class="text-[10px] font-black text-zinc-500 tracking-wider uppercase block">Foydalanuvchilar sharhi va bahosi</span>
+                        <div id="reviewsContainer" class="space-y-2 max-h-[160px] overflow-y-auto custom-scroll pr-1 text-[11px]"></div>
+                        
+                        <div id="commentFormWrapper" class="grid grid-cols-1 gap-1.5 pt-2 bg-zinc-900/40 p-2 rounded-xl border border-zinc-900 relative">
+                            <div id="replyBadge" class="hidden bg-zinc-900 px-2 py-1 text-[10px] text-amber-400 rounded flex justify-between items-center">
+                                <span id="replyBadgeText">Javob berish rejimi...</span>
+                                <button onclick="cancelReplyMode()" class="text-red-500 font-bold font-mono">&times;</button>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="reviewerName" placeholder="Ismingiz" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-lg p-1.5 text-white focus:outline-none text-[11px]">
+                                <select id="reviewerRating" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-lg p-1.5 text-amber-400 font-bold focus:outline-none text-[11px]">
+                                    <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+                                    <option value="4">⭐⭐⭐⭐ (4)</option>
+                                    <option value="3">⭐⭐⭐ (3)</option>
+                                    <option value="2">⭐⭐ (2)</option>
+                                    <option value="1">⭐ (1)</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-1.5 items-center bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1">
+                                <input type="text" id="reviewerText" placeholder="Fikringizni qisqa yozing..." class="flex-grow bg-transparent text-white focus:outline-none text-[11px] py-1">
+                                <label class="cursor-pointer text-zinc-500 hover:text-amber-400 text-sm" title="Rasm yuklash">
+                                    📷
+                                    <input type="file" id="commentImageFile" accept="image/*" class="hidden" onchange="handleCommentImageUpload(this)">
+                                </label>
+                            </div>
+                            <div id="commentImagePreviewWrapper" class="hidden relative w-12 h-12 bg-zinc-950 border border-zinc-800 rounded overflow-hidden">
+                                <img id="commentImagePreview" class="w-full h-full object-cover" alt="Comment image preview">
+                                <button onclick="clearCommentImage()" class="absolute top-0 right-0 bg-black/80 text-red-500 px-1 text-[9px] font-bold">&times;</button>
+                            </div>
+                            <button onclick="submitUserReview()" class="w-full bg-zinc-800 hover:bg-amber-500 hover:text-black text-white py-1.5 rounded-lg text-[10px] font-black uppercase transition">Yuborish</button>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3 pt-2 border-t border-zinc-900">
+                        <div class="flex gap-2">
+                            <button id="watchBtnAction" onclick="launchPlayerFromModal()" class="flex-grow bg-amber-500 hover:bg-amber-600 text-black py-3 px-3 rounded-xl font-black text-xs transition uppercase tracking-wider shadow-lg shadow-amber-500/10">🔥 ONLAYN MULTIMEDIA PLEYERNI OCHISH</button>
+                            <button id="favoriteToggleBtn" onclick="toggleFavoriteAction()" class="bg-zinc-900 border border-zinc-800 text-red-500 px-4 rounded-xl transition flex items-center justify-center text-lg">❤️</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            <a id="actionTelegramBtn" href="#" target="_blank" class="bg-zinc-900 border border-zinc-800 hover:border-blue-500 text-blue-400 font-bold py-2.5 px-1 rounded-xl text-[10px] uppercase tracking-wide transition flex items-center justify-center gap-1">✈️ Telegram Yuklash</a>
+                            <a id="actionTrailerBtn" href="#" target="_blank" class="bg-zinc-900 border border-zinc-800 hover:border-red-500 text-red-500 font-bold py-2.5 px-1 rounded-xl text-[10px] uppercase tracking-wide transition flex items-center justify-center gap-1">🎥 Rasmiy Treyler</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="secureAdminWrapper" class="fixed inset-0 bg-zinc-950 z-[280] hidden overflow-y-auto p-4 sm:p-6 custom-scroll">
+        <div id="adminLoginGate" class="max-w-md mx-auto my-20 bg-zinc-900 border border-zinc-800 rounded-3xl p-6 text-center space-y-4">
+            <h2 class="text-md font-black text-amber-500 uppercase tracking-widest">XAVFSIZLIK DEVORI // AUTENTIFIKATSIYA</h2>
+            <input type="password" id="adminGatePassword" placeholder="Admin xavfsizlik parolini kiriting..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-center text-amber-500 text-sm font-bold tracking-widest focus:outline-none focus:border-amber-500">
+            <div class="flex gap-2">
+                <button onclick="authenticateAdminGate()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black py-2.5 rounded-xl text-xs font-black uppercase transition">Tizimga kirish</button>
+                <button onclick="exitAdminPanel()" class="bg-zinc-950 text-zinc-400 px-4 rounded-xl text-xs uppercase border border-zinc-800">Bekor qilish</button>
+            </div>
+            <div class="text-[10px] text-zinc-600 font-black tracking-widest uppercase pt-2 border-t border-zinc-800/50">
+                © C R E A T O R [ Muallif ] - <span class="text-zinc-500">𝙷𝚘𝚜𝚒𝚕𝚋𝚎𝚔</span>
+            </div>
+        </div>
+
+        <div id="adminWorkspace" class="max-w-7xl mx-auto hidden">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-zinc-900 pb-4 mb-6 gap-4">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <h1 class="text-2xl font-black text-amber-500 tracking-wider">MEDIAHUB // BACKSTAGE PANEL</h1>
+                        <span class="text-xs font-black bg-zinc-900 border border-zinc-800 px-2 py-0.5 text-zinc-400 rounded">© 𝙷𝚘𝚜𝚒𝚕𝚋𝚎𝚔</span>
+                    </div>
+                    <p class="text-xs text-zinc-500 font-mono">Baza boshqaruvi, Import/Export operatsiyalari va Real Blob CRUD arxitekturasi</p>
+                </div>
+                <div class="flex flex-wrap gap-2 w-full lg:w-auto">
+                    <button onclick="openPasswordChangeModal('search')" class="bg-zinc-900 border border-zinc-800 text-amber-400 px-3 py-2 rounded-xl text-xs font-bold uppercase transition">🔍 Qidiruv Paroli</button>
+                    <button onclick="openPasswordChangeModal('gate')" class="bg-zinc-900 border border-zinc-800 text-emerald-400 px-3 py-2 rounded-xl text-xs font-bold uppercase transition">🔑 Xavfsizlik Paroli</button>
+                    <button onclick="exportData('media')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase transition flex-grow sm:flex-grow-0">📦 EKSPORT (JSON)</button>
+                    <label class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase transition cursor-pointer text-center flex-grow sm:flex-grow-0">
+                        📥 IMPORT (JSON)
+                        <input type="file" id="importJsonFileInput" accept=".json" onchange="importData(event)" class="hidden">
+                    </label>
+                    <button onclick="exitAdminPanel()" class="bg-zinc-900 hover:bg-red-600 border border-zinc-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition tracking-widest flex-grow sm:flex-grow-0">CHIQISH</button>
+                </div>
+            </div>
+
+            <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <span class="text-xs font-black uppercase text-zinc-400 tracking-wider">🔒 Tizim mualliflik huquqi tizimi faol</span>
+                <span class="text-xs font-black tracking-widest text-zinc-500 uppercase">© C R E A T O R [ Muallif ] - <span class="text-amber-500">𝙷𝚘𝚜𝚒𝚕𝚋𝚎𝚔</span></span>
+            </div>
+
+            <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-900">
+                    <span class="text-zinc-500 block uppercase font-bold text-[10px]">Bugungi real ko'rish</span>
+                    <b id="admDailyViews" class="text-lg font-mono text-white">0</b>
+                </div>
+                <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-900">
+                    <span class="text-zinc-500 block uppercase font-bold text-[10px]">Oylik real ko'rish</span>
+                    <b id="admMonthlyViews" class="text-lg font-mono text-emerald-400">0</b>
+                </div>
+                <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-900">
+                    <span class="text-zinc-500 block uppercase font-bold text-[10px]">Yillik real ko'rish</span>
+                    <b id="admYearlyViews" class="text-lg font-mono text-amber-500">0</b>
+                </div>
+                <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-900">
+                    <span class="text-zinc-500 block uppercase font-bold text-[10px]">Umumiy tarixiy ko'rish</span>
+                    <b id="admTotalViews" class="text-lg font-mono text-red-400">0</b>
+                </div>
+            </div>
+
+            <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="col-span-full"><h3 class="text-xs font-black text-zinc-400 uppercase tracking-widest">📢 Global Reklama, Elon va Homiylik Modulyatsiyasi</h3></div>
+                <div class="space-y-2">
+                    <label class="text-[10px] text-zinc-500 font-bold block uppercase">Tekst E'lon (Marquee - Faqat Asosiy Menuda)</label>
+                    <input type="text" id="admAnnounceText" class="w-full bg-zinc-950 p-2.5 border border-zinc-800 text-white rounded-xl text-xs focus:outline-none">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] text-zinc-500 font-bold block uppercase">Banner Reklama (URL yoki High-file)</label>
+                    <input type="file" accept="image/*" onchange="handleBlobStorageStream(this, 'admAdBannerLink')" class="text-zinc-500 text-[10px] block mb-1">
+                    <input type="text" id="admAdBannerLink" class="w-full bg-zinc-950 p-2.5 border border-zinc-800 text-white rounded-xl text-xs focus:outline-none" placeholder="Rasm yoki Banner URL manzili...">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] text-zinc-500 font-bold block uppercase">Reklama Yo'naltirish Linki (Redirect Site)</label>
+                    <input type="text" id="admAdRedirectLink" class="w-full bg-zinc-950 p-2.5 border border-zinc-800 text-amber-500 rounded-xl text-xs focus:outline-none" placeholder="https://ad-site.com">
+                </div>
+                <div class="col-span-full bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-3">
+                    <span class="text-xs text-red-400 font-black uppercase block">🔒 Majburiy Videorolik Reklamasi (Har bir media ijrosida chiqadi)</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                            <label class="text-zinc-500 block font-bold mb-1">Majburiy Reklama Videosi/Rasmi (MP4/Blob)</label>
+                            <input type="file" accept="video/*,image/*" onchange="handleBlobStorageStream(this, 'admForcedVideoLink')" class="text-zinc-500 text-[10px] block mb-1">
+                            <input type="text" id="admForcedVideoLink" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2 text-white focus:outline-none" placeholder="Video MP4 yoki Rasm URL...">
+                        </div>
+                        <div>
+                            <label class="text-zinc-500 block font-bold mb-1">Majburiy Taymer (Soniya)</label>
+                            <input type="number" id="admForcedDuration" value="15" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2 text-white focus:outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="text-zinc-500 block font-bold mb-1">Reklama Tizimi Holati</label>
+                            <select id="admAdStatus" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2 text-amber-400 font-bold focus:outline-none">
+                                <option value="active">🟢 Aktiv (Majburiy ijro)</option>
+                                <option value="paused">🔴 Pause (O'chirilgan)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="saveGlobalMarketingAssets()" class="col-span-full bg-amber-500 hover:bg-amber-600 text-black py-2.5 rounded-xl text-xs font-black uppercase transition">Marketing Aktivlarini Saqlash va Sinxronlash</button>
+            </div>
+
+            <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-6 grid grid-cols-1 gap-4">
+                <div class="col-span-full"><h3 class="text-xs font-black text-zinc-400 uppercase tracking-widest">Global Platforma Trafik Datchigini Tahrirlash</h3></div>
+                <div><label class="text-[10px] text-zinc-500 font-bold block mb-1">BUTUN UMR (TOTAL VIEWS)</label><input type="number" id="admLifetime" class="w-full bg-zinc-950 p-2 border border-zinc-800 text-amber-500 font-mono rounded-xl text-xs focus:outline-none"></div>
+                <button onclick="saveGlobalPlatformStats()" class="col-span-full bg-zinc-800 hover:bg-amber-500 hover:text-black py-2 rounded-xl text-xs font-black uppercase transition">Trafik Ko'rsatkichini Sinxronlash</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-xs space-y-4 shadow-xl lg:col-span-2">
+                    <h3 id="adminFormTitle" class="text-sm font-black text-amber-500 uppercase border-b border-zinc-800 pb-2">Multimedia Resurslarini Yuklash Ombori (CRUD)</h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-zinc-400 block mb-1 font-bold">Kategoriya Turi</label>
+                            <select id="movieType" class="w-full bg-zinc-955 border border-zinc-800 rounded-xl p-2.5 text-white focus:outline-none">
+                                <option value="kino">🎬 Standart Kino</option>
+                                <option value="anime">🧬 Mistik Anime</option>
+                                <option value="multik">👾 Fantastik Multfilm</option>
+                                <option value="secret">👁️ Maxfiy Kontent (Faqat '?' orqali ochiladi)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 font-bold">Multimedia Sarlavhasi *</label>
+                            <input type="text" id="movieTitle" placeholder="Sarlavha kiriting" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-white focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-zinc-400 block mb-1 font-bold">Unikal Kod *</label>
+                            <input type="text" id="movieCode" placeholder="707" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-amber-500 font-bold text-center focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 font-bold">Yil (Ixtiyoriy)</label>
+                            <input type="text" id="movieYear" placeholder="2026" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-white text-center focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 font-bold">Janr (Ixtiyoriy)</label>
+                            <input type="text" id="movieGenre" placeholder="Triller / Aksion" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-white focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+                        <div>
+                            <label class="text-emerald-400 block mb-1 font-bold">Like Soni</label>
+                            <input type="number" id="movieLikesOverride" value="0" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-white focus:outline-none text-center font-mono">
+                        </div>
+                        <div>
+                            <label class="text-red-400 block mb-1 font-bold">Dislike Soni</label>
+                            <input type="number" id="movieDislikesOverride" value="0" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-white focus:outline-none text-center font-mono">
+                        </div>
+                        <div>
+                            <label class="text-blue-400 block mb-1 font-bold">Ko'rishlar Soni</label>
+                            <input type="number" id="movieViewsOverride" value="0" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-white focus:outline-none text-center font-mono">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-zinc-400 block mb-1 font-bold">Qisqacha tavsif va syujet liniyasi (Ixtiyoriy)</label>
+                        <textarea id="movieDesc" rows="2" placeholder="Film haqida ma'lumot..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-white resize-none focus:outline-none"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2">
+                            <span class="text-amber-500 font-bold block text-[11px] border-b border-zinc-900 pb-1">🖼 * Muqova (Poster) yuklash</span>
+                            <input type="file" id="movieImgFile" accept="image/*" onchange="handleBlobStorageStream(this, 'movieImgLink')" class="w-full text-zinc-400 text-[10px]">
+                            <input type="text" id="movieImgLink" placeholder="Yoki rasm URL manzili..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-white focus:outline-none text-[11px]">
+                        </div>
+
+                        <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2">
+                            <span class="text-amber-500 font-bold block text-[11px] border-b border-zinc-900 pb-1">🎥 Asosiy Video Manbasi (Kamida 2 GB gacha qo'llaydi)</span>
+                            <input type="file" id="movieVideoFile" accept="video/*" onchange="handleBlobStorageStream(this, 'movieVideoLink')" class="w-full text-zinc-400 text-[10px]">
+                            <input type="text" id="movieVideoLink" placeholder="Yoki to'g'ridan-to'g'ri video URL..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-white focus:outline-none text-[11px]">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2">
+                            <span class="text-red-400 font-bold block text-[11px] border-b border-zinc-900 pb-1">🎬 Treyler Manbasi</span>
+                            <input type="file" id="movieTrailerFile" accept="video/*" onchange="handleBlobStorageStream(this, 'movieTrailerLink')" class="w-full text-zinc-400 text-[10px]">
+                            <input type="text" id="movieTrailerLink" placeholder="Yoki treyler URL..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-white focus:outline-none text-[11px]">
+                        </div>
+
+                        <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2">
+                            <span class="text-blue-400 font-bold block text-[11px] border-b border-zinc-900 pb-1">✈️ Telegram Yuklash Linki</span>
+                            <div class="h-[22px] hidden sm:block"></div>
+                            <input type="text" id="movieTgLink" placeholder="https://t.me/mediahub_bot" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-white focus:outline-none text-[11px]">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button onclick="processAndAddMovie()" id="adminSubmitBtn" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-3 rounded-xl uppercase tracking-wider transition">Ma'lumotlar omboriga saqlash</button>
+                        <button onclick="cancelEditMode()" id="adminCancelEditBtn" class="bg-zinc-800 text-white px-5 rounded-xl uppercase hidden">Bekor qilish</button>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-xs space-y-4 shadow-xl flex flex-col">
+                    <div class="space-y-2 flex-grow flex flex-col">
+                        <h3 class="font-black text-white uppercase border-b border-zinc-800 pb-2 flex justify-between items-center shrink-0">
+                            <span>Mavjud Resurslar</span>
+                            <input type="text" id="adminContentSearch" oninput="filterAdminContent()" placeholder="Qidirish..." class="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none w-32">
+                        </h3>
+                        <div id="adminMoviesList" class="space-y-2 overflow-y-auto max-h-[250px] custom-scroll"></div>
+                    </div>
+
+                    <div class="border-t border-zinc-800 pt-3 space-y-3 flex-grow flex flex-col justify-end">
+                        <h4 class="font-black text-amber-500 uppercase text-[10px]">Tanlangan Media Interaktiv Moderatsiyasi</h4>
+                        <div id="adminReviewControlNode" class="bg-zinc-950 p-2 rounded-xl border border-zinc-800 max-h-[180px] overflow-y-auto custom-scroll space-y-1.5">
+                            <p class="text-zinc-600 text-center py-4">Tahrirlash uchun yuqoridan materialni "Edit" bosing</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultMovies = [
+            { type: "kino", title: "Zulmat Qonuni", code: "101", year: "2026", genre: "Detektiv / Triller", desc: "Tunda sodir bo'lgan yirik va mistik jinoyat ustida murakkab hamda vahimali tergov jarayoni.", image: "https://images.unsplash.com/photo-1509248961158-e54f6934749c?q=80&w=400", video: "https://www.w3schools.com/html/mov_bbb.mp4", trailerLink: "https://youtube.com", tgLink: "https://t.me/MediaHub_Uz_bot", likes: 45, dislikes: 3, views: 1250, isPaused: false, reviews: [{id: 1, name:"Sardor", rating:5, text:"Dahshatli film ekan, tavsiya qilaman!", img: null, likes: 4, replies: []}] },
+            { type: "anime", title: "Kiber Chegara 2026", code: "201", year: "2026", genre: "Kiberpank", desc: "Kelajak yuqori texnologiyalari va mukammal virtual olamning eng shafqatsiz janglari.", image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400", video: "https://www.w3schools.com/html/movie.mp4", trailerLink: "https://youtube.com", tgLink: "https://t.me/MediaHub_Uz_bot", likes: 88, dislikes: 1, views: 3400, isPaused: false, reviews: [] }
+        ];
+
+        const initStats = {
+            lifetime: 395000,
+            daily: 0,
+            monthly: 0,
+            yearly: 0,
+            lastLoggedDay: new Date().getDate(),
+            lastLoggedMonth: new Date().getMonth(),
+            lastLoggedYear: new Date().getFullYear()
+        };
+
+        if(!localStorage.getItem('media_movies')) localStorage.setItem('media_movies', JSON.stringify(defaultMovies));
+        if(!localStorage.getItem('media_favorites')) localStorage.setItem('media_favorites', JSON.stringify([]));
+        if(!localStorage.getItem('media_playback_history')) localStorage.setItem('media_playback_history', JSON.stringify({}));
+        
+        if(!localStorage.getItem('admin_search_keyword')) localStorage.setItem('admin_search_keyword', 'bismillah');
+        if(!localStorage.getItem('admin_master_password')) localStorage.setItem('admin_master_password', 'bismillah');
+        
+        const defaultMarketing = {
+            announcement: "MEDIAHUB ENTERPRISE PRO PORTALIGA XUSH KELIBSIZ! ENG SO'NGGI PREMYERALAR FAQAT BIZDA!",
+            adBanner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200",
+            adRedirect: "https://google.com",
+            forcedVideo: "https://www.w3schools.com/html/movie.mp4",
+            forcedDuration: 10,
+            adStatus: "active"
+        };
+        if(!localStorage.getItem('platform_marketing')) localStorage.setItem('platform_marketing', JSON.stringify(defaultMarketing));
+        if(!localStorage.getItem('platform_traffic')) localStorage.setItem('platform_traffic', JSON.stringify(initStats));
+
+        let movies = JSON.parse(localStorage.getItem('media_movies'));
+        let favorites = JSON.parse(localStorage.getItem('media_favorites'));
+        let playbackHistory = JSON.parse(localStorage.getItem('media_playback_history'));
+        let platformTraffic = JSON.parse(localStorage.getItem('platform_traffic'));
+        let marketing = JSON.parse(localStorage.getItem('platform_marketing'));
+        let userVotedMatrix = JSON.parse(localStorage.getItem('user_voted_matrix') || '{}');
+        let commentVotedMatrix = JSON.parse(localStorage.getItem('comment_voted_matrix') || '{}');
+
+        let currentTab = 'kino';
+        let editTargetCode = null; 
+        let isSecretViewActive = false;
+        let selectedMovieGlobal = null;
+        let theaterMode = false;
+        let activeReplyTargetCommentId = null;
+        let temporaryCommentImgBase64 = null;
+
+        let currentLiveUsers = Math.floor(80 + Math.random() * 40);
+        let liveTrendGoingUp = Math.random() > 0.5;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            checkHashRoute();
+            validateTimePeriods();
+            renderMovies();
+            renderCarousel();
+            setupPlayerTouchGesturesEngine();
+            runStatisticsSimulation();
+            setupCustomPlayerCoreListeners();
+            setupKeyboardControls();
+            syncMarketingUI();
+            document.getElementById('mainContent').classList.remove('opacity-0');
+            document.getElementById('mainContent').classList.add('opacity-100');
+        });
+
+        window.addEventListener('hashchange', checkHashRoute);
+
+        function checkHashRoute() {
+            if(window.location.hash === '#admin-panel') {
+                document.getElementById('secureAdminWrapper').classList.remove('hidden');
+                document.getElementById('adminLoginGate').classList.remove('hidden');
+                document.getElementById('adminWorkspace').classList.add('hidden');
+            } else {
+                document.getElementById('secureAdminWrapper').classList.add('hidden');
+            }
+        }
+
+        function validateTimePeriods() {
+            const now = new Date();
+            let currentDay = now.getDate();
+            let currentMonth = now.getMonth();
+            let currentYear = now.getFullYear();
+            let stateChanged = false;
+
+            if(!platformTraffic.hasOwnProperty('daily')) platformTraffic.daily = 0;
+            if(!platformTraffic.hasOwnProperty('monthly')) platformTraffic.monthly = 0;
+            if(!platformTraffic.hasOwnProperty('yearly')) platformTraffic.yearly = 0;
+
+            if (platformTraffic.lastLoggedDay !== currentDay) {
+                platformTraffic.daily = 0;
+                platformTraffic.lastLoggedDay = currentDay;
+                stateChanged = true;
+            }
+            if (platformTraffic.lastLoggedMonth !== currentMonth) {
+                platformTraffic.monthly = 0;
+                platformTraffic.lastLoggedMonth = currentMonth;
+                stateChanged = true;
+            }
+            if (platformTraffic.lastLoggedYear !== currentYear) {
+                platformTraffic.yearly = 0;
+                platformTraffic.lastLoggedYear = currentYear;
+                stateChanged = true;
+            }
+
+            if(stateChanged) {
+                localStorage.setItem('platform_traffic', JSON.stringify(platformTraffic));
+            }
+        }
+
+        function runStatisticsSimulation() {
+            syncGlobalTrafficUI();
+
+            setInterval(() => {
+                let step = Math.floor(1 + Math.random() * 5);
+                if (liveTrendGoingUp) {
+                    currentLiveUsers += step;
+                    if (currentLiveUsers >= 200) {
+                        currentLiveUsers = 200;
+                        liveTrendGoingUp = false;
+                    }
+                } else {
+                    currentLiveUsers -= step;
+                    if (currentLiveUsers <= 50) {
+                        currentLiveUsers = 50;
+                        liveTrendGoingUp = true;
+                    }
+                }
+                const liveUsersCountEl = document.getElementById('liveUsersCount');
+                if(liveUsersCountEl) liveUsersCountEl.innerText = currentLiveUsers;
+            }, 4000);
+
+            setInterval(() => {
+                validateTimePeriods();
+                if(Math.random() > 0.4) { 
+                    let growth = Math.floor(1 + Math.random() * 3);
+                    incrementGlobalTraffic(growth);
+                }
+            }, 60000);
+        }
+
+        function incrementGlobalTraffic(amount = 1) {
+            validateTimePeriods();
+            platformTraffic.lifetime += amount;
+            platformTraffic.daily += amount;
+            platformTraffic.monthly += amount;
+            platformTraffic.yearly += amount;
+            localStorage.setItem('platform_traffic', JSON.stringify(platformTraffic));
+            syncGlobalTrafficUI();
+        }
+
+        function syncGlobalTrafficUI() {
+            const elTotal = document.getElementById('totalViewsCount');
+            if(elTotal) elTotal.innerText = platformTraffic.lifetime.toLocaleString();
+
+            const d = document.getElementById('statDaily');
+            const m = document.getElementById('statMonthly');
+            const y = document.getElementById('statYearly');
+            const t = document.getElementById('statTotal');
+
+            if(d) d.innerText = (platformTraffic.daily || 0).toLocaleString();
+            if(m) m.innerText = (platformTraffic.monthly || 0).toLocaleString();
+            if(y) y.innerText = (platformTraffic.yearly || 0).toLocaleString();
+            if(t) t.innerText = (platformTraffic.lifetime || 0).toLocaleString();
+
+            const ad = document.getElementById('admDailyViews');
+            const am = document.getElementById('admMonthlyViews');
+            const ay = document.getElementById('admYearlyViews');
+            const at = document.getElementById('admTotalViews');
+
+            if(ad) ad.innerText = (platformTraffic.daily || 0).toLocaleString();
+            if(am) am.innerText = (platformTraffic.monthly || 0).toLocaleString();
+            if(ay) ay.innerText = (platformTraffic.yearly || 0).toLocaleString();
+            if(at) at.innerText = (platformTraffic.lifetime || 0).toLocaleString();
+        }
+
+        function toggleStatsDropdown() {
+            const menu = document.getElementById('statsDropdown');
+            menu.classList.toggle('hidden');
+        }
+
+        function syncMarketingUI() {
+            if (isSecretViewActive || window.location.hash === '#admin-panel') {
+                document.getElementById('globalAnnouncementWrapper').classList.add('hidden');
+                document.getElementById('globalAdBannerWrapper').classList.add('hidden');
+            } else {
+                document.getElementById('globalAnnouncementWrapper').classList.remove('hidden');
+                document.getElementById('globalAdBannerWrapper').classList.remove('hidden');
+                document.getElementById('announcementText').innerText = marketing.announcement || "MEDIAHUB PRO TIZIMIGA XUSH KELIBSIZ!";
+                document.getElementById('adBannerImage').src = marketing.adBanner || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200";
+            }
+        }
+
+        function triggerAdRedirect() {
+            if (marketing.adRedirect) window.open(marketing.adRedirect, '_blank');
+        }
+
+        function authenticateAdminGate() {
+            const val = document.getElementById('adminGatePassword').value;
+            const master = localStorage.getItem('admin_master_password');
+            if(val === master) {
+                document.getElementById('adminLoginGate').classList.add('hidden');
+                document.getElementById('adminWorkspace').classList.remove('hidden');
+                document.getElementById('adminGatePassword').value = '';
+                populateAdminTrafficFields();
+                populateAdminMarketingFields();
+                refreshAdminDashboard();
+                syncGlobalTrafficUI();
+                syncMarketingUI();
+                showToast("Sistemaga ruxsat berildi. Mualliflik boshqaruv paneli faol.", "success");
+            } else { showToast("Xavfsizlik devori paroli noto'g'ri!", "error"); }
+        }
+
+        function openPasswordChangeModal(type) {
+            if(type === 'search') {
+                const newPass = prompt("Yangi QIDIRUV (1-bosqich) parolini kiriting:");
+                if(newPass && newPass.trim().length > 3) {
+                    localStorage.setItem('admin_search_keyword', newPass.trim());
+                    showToast("Qidiruv kalit so'zi o'zgartirildi!", "success");
+                } else { showToast("Parol kamida 4ta belgidan iborat bo'lishi shart!", "error"); }
+            } else if(type === 'gate') {
+                const newPass = prompt("Yangi XAVFSIZLIK DEVORI (2-bosqich) parolini kiriting:");
+                if(newPass && newPass.trim().length > 3) {
+                    localStorage.setItem('admin_master_password', newPass.trim());
+                    showToast("Xavfsizlik devori paroli o'zgartirildi!", "success");
+                } else { showToast("Parol kamida 4ta belgidan iborat bo'lishi shart!", "error"); }
+            }
+        }
+
+        function populateAdminTrafficFields() {
+            document.getElementById('admLifetime').value = platformTraffic.lifetime;
+        }
+
+        function populateAdminMarketingFields() {
+            document.getElementById('admAnnounceText').value = marketing.announcement || '';
+            document.getElementById('admAdBannerLink').value = marketing.adBanner || '';
+            document.getElementById('admAdRedirectLink').value = marketing.adRedirect || '';
+            document.getElementById('admForcedVideoLink').value = marketing.forcedVideo || '';
+            document.getElementById('admForcedDuration').value = marketing.forcedDuration || 15;
+            document.getElementById('admAdStatus').value = marketing.adStatus || 'active';
+        }
+
+        function saveGlobalPlatformStats() {
+            platformTraffic.lifetime = parseInt(document.getElementById('admLifetime').value) || 0;
+            localStorage.setItem('platform_traffic', JSON.stringify(platformTraffic));
+            syncGlobalTrafficUI();
+            showToast("Global trafik datchigi ma'lumotlari yangilandi.", "success");
+        }
+
+        function saveGlobalMarketingAssets() {
+            marketing.announcement = document.getElementById('admAnnounceText').value.trim();
+            marketing.adBanner = document.getElementById('admAdBannerLink').value.trim();
+            marketing.adRedirect = document.getElementById('admAdRedirectLink').value.trim();
+            marketing.forcedVideo = document.getElementById('admForcedVideoLink').value.trim();
+            marketing.forcedDuration = parseInt(document.getElementById('admForcedDuration').value) || 10;
+            marketing.adStatus = document.getElementById('admAdStatus').value;
+            
+            localStorage.setItem('platform_marketing', JSON.stringify(marketing));
+            syncMarketingUI();
+            showToast("Marketing assetlari burun tizim bo'ylab sinxronlandi.", "success");
+        }
+
+        function verifyAge() {
+            if (document.getElementById('checkAge').checked && document.getElementById('checkHealth').checked && document.getElementById('checkTerms').checked) {
+                document.getElementById('ageModal').classList.add('hidden');
+                showToast("Barcha kirish nizomlari tasdiqlandi. Xush kelibsiz!", "success");
+            } else { showToast("Iltimos, barcha 3 ta strategik shartni tasdiqlang!", "error"); }
+        }
+        function exitSite() { window.location.href = "https://www.google.com"; }
+
+        function handleBlobStorageStream(input, targetInputId) {
+            const file = input.files[0];
+            if(file) {
+                try {
+                    const localBlobUrl = URL.createObjectURL(file);
+                    document.getElementById(targetInputId).value = localBlobUrl;
+                    showToast(`Katta hajmli resurs muvaffaqiyatli ulandi (${(file.size/(1024*1024*1024)).toFixed(2)} GB)`, "success");
+                } catch(e) {
+                    showToast("Fayl oqimini yaratishda xatolik yuz berdi!", "error");
+                }
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `p-3 rounded-xl text-xs font-bold text-white shadow-2xl transition duration-300 transform translate-x-10 opacity-0 flex items-center gap-2 border ${
+                type === 'success' ? 'bg-zinc-900 border-emerald-500 text-emerald-400' :
+                type === 'error' ? 'bg-zinc-900 border-red-500 text-red-400' : 'bg-zinc-900 border-amber-500 text-amber-400'
+            }`;
+            toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-x-10', 'opacity-0'); }, 10);
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => { toast.remove(); }, 300);
+            }, 3500);
+        }
+
+        function switchTab(tab) {
+            if(isSecretViewActive) { isSecretViewActive = false; }
+            currentTab = tab;
+            ['kino', 'anime', 'multik', 'favorites'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if(btn) btn.className = "flex-1 text-center py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black text-gray-400 hover:text-white transition duration-300 min-w-[100px]";
+            });
+            document.body.className = `bg-black text-white font-sans antialiased main-bg bg-${tab} min-h-screen flex flex-col justify-between`;
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            if(tab === 'favorites') {
+                if(activeBtn) activeBtn.className = "flex-1 text-center py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black bg-red-600 text-white shadow-lg transition duration-300 min-w-[110px]";
+                document.getElementById('categoryTitle').innerHTML = "❤️ Sevimlilar Ro'yxatingiz";
+            } else {
+                if(activeBtn) activeBtn.className = "flex-1 text-center py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black bg-amber-500 text-black shadow-lg transition duration-300 min-w-[100px]";
+                if (tab === 'kino') document.getElementById('categoryTitle').innerHTML = "🎬 Dahshatli va Detektiv Kinolar";
+                if (tab === 'anime') document.getElementById('categoryTitle').innerHTML = "🧬 Premium Mistik Animeler";
+                if (tab === 'multik') document.getElementById('categoryTitle').innerHTML = "👾 Fantastik Multfilmlar";
+            }
+            syncMarketingUI();
+            renderMovies();
+            if(!isSecretViewActive) document.getElementById('carouselWrapper').classList.remove('hidden');
+        }
+
+        function searchMovies() {
+            const q = document.getElementById('searchInput').value.trim();
+            const searchKeyword = localStorage.getItem('admin_search_keyword');
+            if (q.toLowerCase() === searchKeyword.toLowerCase()) { 
+                window.location.hash = '#admin-panel'; document.getElementById('searchInput').value = ''; return; 
+            }
+            if (q === "?") {
+                isSecretViewActive = true;
+                document.body.className = "bg-black text-white font-sans antialiased main-bg bg-premium-secret min-h-screen flex flex-col justify-between";
+                document.getElementById('categoryTitle').innerHTML = "👁️ MAXFIY PREMIUM KINOTEATR STRIMING REJIMIDASIZ";
+                document.getElementById('carouselWrapper').classList.add('hidden');
+                syncMarketingUI();
+                renderMovies(); return;
+            } else if (isSecretViewActive && q !== "?") {
+                isSecretViewActive = false; document.getElementById('carouselWrapper').classList.remove('hidden'); switchTab(currentTab);
+            }
+            renderMovies(q.toLowerCase(), document.getElementById('filterYear').value);
+        }
+
+        function renderMovies(filter = "", year = "all") {
+            const grid = document.getElementById('moviesGrid'); grid.innerHTML = '';
+            let filtered = isSecretViewActive ? movies.filter(m => m.type === 'secret') : (currentTab === 'favorites' ? movies.filter(m => favorites.includes(String(m.code))) : movies.filter(m => m.type === currentTab));
+            
+            if(filter && !isSecretViewActive) filtered = filtered.filter(m => m.title.toLowerCase().includes(filter) || String(m.code) === filter);
+            if(year !== "all" && !isSecretViewActive && currentTab !== 'favorites') filtered = filtered.filter(m => String(m.year) === year);
+
+            if(filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-zinc-500 uppercase tracking-widest">Kontent topilmadi yoki ro'yxat bo'sh...</div>`;
+                return;
+            }
+
+            filtered.forEach((movie) => {
+                const rating = calculateAverageRating(movie);
+                grid.innerHTML += `
+                    <div class="bg-zinc-900/40 backdrop-blur-md rounded-2xl overflow-hidden border border-zinc-800 flex flex-col justify-between hover:border-amber-500 hover:scale-[1.02] transition duration-300 shadow-2xl relative group ${movie.isPaused ? 'opacity-40' : ''}">
+                        <div onclick="openDetailsModal('${movie.code}')" class="cursor-pointer relative aspect-[3/4]">
+                            <img src="${movie.image || 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?q=80&w=300'}" class="w-full h-full object-cover group-hover:brightness-90 transition" alt="${movie.title}">
+                            <span class="absolute top-2 left-2 bg-black/85 text-amber-400 text-[9px] px-2 py-0.5 rounded-md font-black tracking-wider">${movie.isPaused ? 'BLOKLANGAN' : 'PREMIUM HD'}</span>
+                            <span class="absolute top-2 right-2 bg-black/85 text-amber-400 text-[9px] px-1.5 py-0.5 rounded-md font-mono">⭐ ${rating}</span>
+                        </div>
+                        <div class="p-3 text-center bg-gradient-to-b from-transparent to-zinc-950">
+                            <h3 class="font-bold text-xs uppercase truncate text-zinc-200 mb-2">${movie.title}</h3>
+                            <button onclick="openDetailsModal('${movie.code}')" class="w-full bg-zinc-900 border border-zinc-800 text-amber-400 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-amber-500 hover:text-black transition tracking-wider">${movie.isPaused ? 'Yopiq' : 'Tomosha Qilish'}</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function renderCarousel() {
+            const container = document.getElementById('carouselContainer'); container.innerHTML = '';
+            movies.filter(m => m.type !== 'secret' && !m.isPaused).slice(-6).forEach((movie) => {
+                container.innerHTML += `
+                    <div onclick="openDetailsModal('${movie.code}')" class="min-w-[140px] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden cursor-pointer shrink-0 hover:border-amber-500 hover:scale-95 transition duration-300 shadow-lg">
+                        <img src="${movie.image || 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?q=80&w=200'}" class="w-full h-24 object-cover" alt="${movie.title}">
+                        <div class="p-2 text-[10px] truncate font-black text-center text-zinc-400 uppercase tracking-tight">${movie.title}</div>
+                    </div>`;
+            });
+        }
+
+        function openDetailsModal(code) {
+            const m = movies.find(mov => String(mov.code) === String(code));
+            if(!m) return;
+            if(m.isPaused) return showToast("Ushbu material ma'muriyat tomonidan vaqtincha muzlatilgan!", "error");
+            selectedMovieGlobal = m;
+
+            if(!m.views) m.views = 0;
+            m.views += 1;
+            syncMovieToStorageArray(m);
+            
+            incrementGlobalTraffic(1);
+
+            document.getElementById('modalTitle').innerText = m.title;
+            document.getElementById('modalDesc').innerText = m.desc || "Ushbu kontent uchun batafsil tavsif kiritilmagan.";
+            document.getElementById('modalPosterImg').src = m.image || 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?q=80&w=400';
+            document.getElementById('modalPosterImg').classList.remove('hidden');
+            document.getElementById('videoPlayerWrapper').classList.add('hidden');
+            document.getElementById('toggleTheaterBtn').classList.add('hidden');
+            
+            document.getElementById('modalCodeBadge').innerText = `KOD: ` + m.code + ` | 👁️ ` + (m.views || 1);
+            document.getElementById('modalGenre').innerText = `${m.genre || 'Triller'} (${m.year || '2026'})`;
+            document.getElementById('actionTrailerBtn').href = m.trailerLink || "https://youtube.com";
+            
+            if(m.tgLink) {
+                let cleanLink = m.tgLink.split('?')[0];
+                document.getElementById('actionTelegramBtn').href = `${cleanLink}?start=${m.code}`;
+            } else {
+                document.getElementById('actionTelegramBtn').href = `https://t.me/MediaHub_Uz_bot?start=${m.code}`;
+            }
+
+            if(playbackHistory[m.code] && playbackHistory[m.code] > 2) {
+                document.getElementById('continueWatchingBadge').classList.remove('hidden');
+            } else { document.getElementById('continueWatchingBadge').classList.add('hidden'); }
+
+            cancelReplyMode();
+            updateFavoriteButtonUI();
+            updateVotingUI();
+            renderReviews();
+            updateComputedRatingBadge();
+
+            document.getElementById('detailsModal').classList.replace('hidden', 'flex');
+        }
+
+        function closeDetailsModal() {
+            const p = document.getElementById('mainVideoPlayer');
+            if(selectedMovieGlobal && p.currentTime > 2 && p.currentTime < p.duration - 5) {
+                playbackHistory[selectedMovieGlobal.code] = p.currentTime;
+                localStorage.setItem('media_playback_history', JSON.stringify(playbackHistory));
+            }
+            p.pause();
+            if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+            if(theaterMode) toggleTheaterMode();
+            document.getElementById('detailsModal').classList.replace('flex', 'hidden');
+            selectedMovieGlobal = null;
+        }
+
+        function launchPlayerFromModal() {
+            if(!selectedMovieGlobal) return;
+            if(!selectedMovieGlobal.video) return showToast("Video oqimi mavjud emas!", "error");
+
+            if (marketing.forcedVideo && marketing.adStatus !== 'paused' && !isSecretViewActive) {
+                triggerForcedAdPipeline(() => { executeCorePlayerInitialization(); });
+            } else {
+                executeCorePlayerInitialization();
+            }
+        }
+
+        function triggerForcedAdPipeline(callback) {
+            const modal = document.getElementById('forcedAdModal');
+            const adVideo = document.getElementById('forcedAdVideoComponent');
+            const adImage = document.getElementById('forcedAdImageComponent');
+            const feedback = document.getElementById('adTimerFeedback');
+            const skipBtn = document.getElementById('skipAdActionButton');
+
+            modal.classList.replace('hidden', 'flex');
+            skipBtn.disabled = true;
+            skipBtn.className = "bg-zinc-800 text-zinc-500 text-xs font-black px-4 py-2 rounded-xl uppercase transition cursor-not-allowed";
+            
+            let remaining = marketing.forcedDuration || 10;
+            feedback.innerText = `Reklama tugashiga: ${remaining} soniya qoldi`;
+
+            window.forcedAdCallbackToken = callback;
+
+            if (marketing.forcedVideo.match(/\.(jpeg|jpg|gif|png|webp)/i) || marketing.forcedVideo.startsWith('data:image') || marketing.forcedVideo.startsWith('blob:')) {
+                adVideo.classList.add('hidden');
+                adImage.classList.remove('hidden');
+                adImage.src = marketing.forcedVideo;
+                adImage.onclick = () => { if(marketing.adRedirect) window.open(marketing.adRedirect, '_blank'); };
+            } else {
+                adImage.classList.add('hidden');
+                adVideo.classList.remove('hidden');
+                adVideo.src = marketing.forcedVideo;
+                adVideo.onclick = () => { if(marketing.adRedirect) window.open(marketing.adRedirect, '_blank'); };
+                adVideo.load();
+                adVideo.play().catch(() => {});
+            }
+
+            if(window.forcedAdInterval) clearInterval(window.forcedAdInterval);
+            
+            window.forcedAdInterval = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(window.forcedAdInterval);
+                    feedback.innerText = "Siz reklamani o'tkazib yuborishingiz mumkin!";
+                    skipBtn.disabled = false;
+                    skipBtn.className = "bg-amber-500 text-black text-xs font-black px-4 py-2 rounded-xl uppercase transition cursor-pointer";
+                } else {
+                    feedback.innerText = `Reklama tugashiga: ${remaining} soniya qoldi`;
+                }
+            }, 1000);
+        }
+
+        function skipForcedAdAction() {
+            if(window.forcedAdInterval) clearInterval(window.forcedAdInterval);
+            document.getElementById('forcedAdVideoComponent').pause();
+            document.getElementById('forcedAdModal').classList.replace('flex', 'hidden');
+            if (window.forcedAdCallbackToken) { window.forcedAdCallbackToken(); window.forcedAdCallbackToken = null; }
+        }
+
+        function executeCorePlayerInitialization() {
+            document.getElementById('modalPosterImg').classList.add('hidden');
+            document.getElementById('videoPlayerWrapper').classList.remove('hidden');
+            document.getElementById('toggleTheaterBtn').classList.remove('hidden');
+            
+            const p = document.getElementById('mainVideoPlayer');
+            p.src = selectedMovieGlobal.video; 
+            const savedTime = playbackHistory[selectedMovieGlobal.code];
+            p.load();
+            
+            p.play().then(() => {
+                if(savedTime && savedTime > 2) { 
+                    if(confirm(`Siz ushbu videoni oxirgi marta ${Math.floor(savedTime / 60)} daqiqada tark etgansiz. Davom ettirilsinmi?`)) { 
+                        p.currentTime = savedTime; 
+                    }
+                }
+            }).catch(() => {
+                showToast("Oqim tayyorlandi. Tizim ishga tushishi uchun PLAY bosing.", "info");
+            });
+        }
+
+        function setupCustomPlayerCoreListeners() {
+            const p = document.getElementById('mainVideoPlayer');
+            const progress = document.getElementById('playerProgressBar');
+            const timeDisplay = document.getElementById('playerTimeDisplay');
+            const playBtn = document.getElementById('customPlayBtn');
+            const loader = document.getElementById('playerBufferingLoader');
+
+            p.addEventListener('timeupdate', () => {
+                if(p.duration) {
+                    progress.value = (p.currentTime / p.duration) * 100;
+                    timeDisplay.innerText = `${formatTime(p.currentTime)} / ${formatTime(p.duration)}`;
+                }
+            });
+
+            p.addEventListener('waiting', () => { if(loader) loader.classList.remove('hidden'); });
+            p.addEventListener('playing', () => { if(loader) loader.classList.add('hidden'); });
+
+            p.addEventListener('play', () => { if(playBtn) playBtn.innerText = "PAUSE"; });
+            p.addEventListener('pause', () => { if(playBtn) playBtn.innerText = "PLAY"; });
+        }
+
+        function setupKeyboardControls() {
+            window.addEventListener('keydown', (e) => {
+                if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') return;
+
+                const p = document.getElementById('mainVideoPlayer');
+                const wrapper = document.getElementById('videoPlayerWrapper');
+                if(wrapper && !wrapper.classList.contains('hidden') && p) {
+                    if(e.code === 'Space') {
+                        e.preventDefault();
+                        togglePlayPause();
+                    } else if(e.code === 'ArrowRight') {
+                        e.preventDefault();
+                        p.currentTime = Math.min(p.duration, p.currentTime + 10);
+                        showGestureFeedback("⏩ +10s Oldinga");
+                    } else if(e.code === 'ArrowLeft') {
+                        e.preventDefault();
+                        p.currentTime = Math.max(0, p.currentTime - 10);
+                        showGestureFeedback("⏪ -10s Orqaga");
+                    } else if(e.code === 'ArrowUp') {
+                        e.preventDefault();
+                        p.volume = Math.min(1, p.volume + 0.1);
+                        showGestureFeedback(`🔊 Ovoz: ${Math.round(p.volume * 100)}%`);
+                    } else if(e.code === 'ArrowDown') {
+                        e.preventDefault();
+                        p.volume = Math.max(0, p.volume - 0.1);
+                        showGestureFeedback(`🔊 Ovoz: ${Math.round(p.volume * 100)}%`);
+                    }
+                }
+            });
+        }
+
+        function showGestureFeedback(text) {
+            const feedback = document.getElementById('gestureFeedback');
+            if(feedback) {
+                feedback.innerText = text; feedback.style.opacity = '1';
+                setTimeout(() => { feedback.style.opacity = '0'; }, 800);
+            }
+        }
+
+        function togglePlayPause() {
+            const p = document.getElementById('mainVideoPlayer');
+            if(p.paused) p.play().catch(()=>{}); else p.pause();
+        }
+
+        function seekVideo(val) {
+            const p = document.getElementById('mainVideoPlayer');
+            if(p.duration) p.currentTime = (val / 100) * p.duration;
+        }
+
+        function changePlayerSpeed(speed) {
+            document.getElementById('mainVideoPlayer').playbackRate = parseFloat(speed);
+        }
+
+        function simulateQualitySwitch(quality) {
+            showToast(`Sifat: ${quality}...`, "info");
+            const p = document.getElementById('mainVideoPlayer');
+            const sec = p.currentTime;
+            const isPaused = p.paused;
+            setTimeout(() => { p.currentTime = sec; if(!isPaused) p.play().catch(()=>{}); }, 500);
+        }
+
+        function toggleFullScreen() {
+            const wrap = document.getElementById('videoPlayerWrapper');
+            if(!document.fullscreenElement) {
+                wrap.requestFullscreen().catch(() => showToast("Fullscreen xatoligi", "error"));
+            } else { document.exitFullscreen(); }
+        }
+
+        function setupPlayerTouchGesturesEngine() {
+            const player = document.getElementById('mainVideoPlayer');
+            
+            document.getElementById('playerZoneLeft').addEventListener('dblclick', () => { player.currentTime = Math.max(0, player.currentTime - 10); showGestureFeedback("⏪ 10s Orqaga"); });
+            document.getElementById('playerZoneRight').addEventListener('dblclick', () => { player.currentTime = Math.min(player.duration, player.currentTime + 10); showGestureFeedback("⏩ 10s Oldinga"); });
+            document.getElementById('playerZoneCenter').addEventListener('dblclick', () => { togglePlayPause(); });
+
+            let touchStartX = 0; let touchStartY = 0;
+            const zoneLeft = document.getElementById('playerZoneLeft');
+            const zoneRight = document.getElementById('playerZoneRight');
+
+            zoneRight.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; touchStartX = e.touches[0].clientX; }, {passive: true});
+            zoneRight.addEventListener('touchmove', e => {
+                let deltaY = touchStartY - e.touches[0].clientY;
+                let deltaX = e.touches[0].clientX - touchStartX;
+                if(Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 30) {
+                    if(deltaY > 0) player.volume = Math.min(1, player.volume + 0.05);
+                    else player.volume = Math.max(0, player.volume - 0.05);
+                    showGestureFeedback(`🔊 Ovoz: ${Math.round(player.volume * 100)}%`);
+                    touchStartY = e.touches[0].clientY;
+                }
+            }, {passive: true});
+
+            zoneLeft.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, {passive: true});
+            zoneLeft.addEventListener('touchmove', e => {
+                let deltaX = e.touches[0].clientX - touchStartX;
+                if(Math.abs(deltaX) > 50) {
+                    if(deltaX > 0) { player.currentTime = Math.min(player.duration, player.currentTime + 5); showGestureFeedback("⏩ Tezlashtirish +5s"); }
+                    else { player.currentTime = Math.max(0, player.currentTime - 5); showGestureFeedback("⏪ Orqaga -5s"); }
+                    touchStartX = e.touches[0].clientX;
+                }
+            }, {passive: true});
+        }
+
+        function toggleTheaterMode() {
+            theaterMode = !theaterMode;
+            const container = document.getElementById('modalLayoutContainer');
+            const mediaBox = document.getElementById('modalMediaContainer');
+            if(theaterMode) {
+                container.classList.replace('max-w-5xl', 'max-w-full');
+                mediaBox.classList.add('theater-mode-active');
+                document.getElementById('toggleTheaterBtn').innerText = "🔲 Oddiy Rejim";
+            } else {
+                container.classList.replace('max-w-full', 'max-w-5xl');
+                mediaBox.classList.remove('theater-mode-active');
+                document.getElementById('toggleTheaterBtn').innerText = "🎭 Teatr Rejimi";
+            }
+        }
+
+        function updateVotingUI() {
+            if(!selectedMovieGlobal) return;
+            const l = selectedMovieGlobal.likes || 0;
+            const d = selectedMovieGlobal.dislikes || 0;
+            document.getElementById('voteLikeCount').innerText = l;
+            document.getElementById('voteDislikeCount').innerText = d;
+            
+            const total = l + d;
+            const likePct = total > 0 ? Math.round((l / total) * 100) : 50;
+            const dislikePct = total > 0 ? 100 - likePct : 50;
+            
+            document.getElementById('voteRatioText').innerText = `Ratio: ${likePct}% / ${dislikePct}%`;
+            document.getElementById('voteRatioProgress').style.width = `${likePct}%`;
+        }
+
+        function castVote(type) {
+            if(!selectedMovieGlobal) return;
+            const code = selectedMovieGlobal.code;
+            if(userVotedMatrix[code]) return showToast("Siz ushbu materialga ovoz berib bo'lgansiz!", "error");
+            
+            if(!selectedMovieGlobal.likes) selectedMovieGlobal.likes = 0;
+            if(!selectedMovieGlobal.dislikes) selectedMovieGlobal.dislikes = 0;
+
+            if(type === 'like') selectedMovieGlobal.likes += 1;
+            else selectedMovieGlobal.dislikes += 1;
+
+            userVotedMatrix[code] = type;
+            localStorage.setItem('user_voted_matrix', JSON.stringify(userVotedMatrix));
+            
+            syncMovieToStorageArray(selectedMovieGlobal);
+            updateVotingUI();
+            showToast("Ovozingiz muvaffaqiyatli qabul qilindi.", "success");
+        }
+
+        function syncMovieToStorageArray(m) {
+            const idx = movies.findIndex(mov => String(mov.code) === String(m.code));
+            if(idx !== -1) { movies[idx] = m; localStorage.setItem('media_movies', JSON.stringify(movies)); }
+        }
+
+        function handleCommentImageUpload(input) {
+            const file = input.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    temporaryCommentImgBase64 = e.target.result;
+                    document.getElementById('commentImagePreview').src = temporaryCommentImgBase64;
+                    document.getElementById('commentImagePreviewWrapper').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearCommentImage() {
+            temporaryCommentImgBase64 = null;
+            document.getElementById('commentImageFile').value = '';
+            document.getElementById('commentImagePreviewWrapper').classList.add('hidden');
+        }
+
+        function submitUserReview() {
+            if(!selectedMovieGlobal) return;
+            const name = document.getElementById('reviewerName').value.trim() || "Anonim";
+            const rating = parseInt(document.getElementById('reviewerRating').value);
+            const text = document.getElementById('reviewerText').value.trim();
+
+            if(!text) return showToast("Fikr matnini yozing!", "error");
+            if(!selectedMovieGlobal.reviews) selectedMovieGlobal.reviews = [];
+
+            if(activeReplyTargetCommentId !== null) {
+                findAndAppendReplyNode(selectedMovieGlobal.reviews, activeReplyTargetCommentId, name, text);
+                showToast("Javobingiz chop etildi", "success");
+            } else {
+                const newComment = {
+                    id: Date.now(),
+                    name, rating, text,
+                    img: temporaryCommentImgBase64,
+                    likes: 0, replies: []
+                };
+                selectedMovieGlobal.reviews.push(newComment);
+                showToast("Sharh qo'shildi", "success");
+            }
+
+            syncMovieToStorageArray(selectedMovieGlobal);
+            document.getElementById('reviewerText').value = '';
+            clearCommentImage();
+            cancelReplyMode();
+            renderReviews();
+            updateComputedRatingBadge();
+            renderMovies();
+        }
+
+        function findAndAppendReplyNode(arr, targetId, name, text) {
+            for(let i=0; i<arr.length; i++) {
+                if(arr[i].id === targetId) {
+                    if(!arr[i].replies) arr[i].replies = [];
+                    arr[i].replies.push({ id: Date.now(), name, text, likes: 0 });
+                    return true;
+                }
+                if(arr[i].replies && arr[i].replies.length > 0) {
+                    let found = findAndAppendReplyNode(arr[i].replies, targetId, name, text);
+                    if(found) return true;
+                }
+            }
+            return false;
+        }
+
+        function initReplyMode(commentId, authorName) {
+            activeReplyTargetCommentId = commentId;
+            document.getElementById('replyBadgeText').innerText = `⚡ ${authorName} sharhiga javob yozish:`;
+            document.getElementById('replyBadge').classList.remove('hidden');
+            document.getElementById('reviewerText').focus();
+        }
+
+        function cancelReplyMode() {
+            activeReplyTargetCommentId = null;
+            document.getElementById('replyBadge').classList.add('hidden');
+        }
+
+        function voteComment(commentId) {
+            if(commentVotedMatrix[commentId]) return showToast("Faqat 1 marta bosish mumkin", "info");
+            
+            let incremented = modifyCommentLikeCounter(selectedMovieGlobal.reviews, commentId);
+            if(incremented) {
+                commentVotedMatrix[commentId] = true;
+                localStorage.setItem('comment_voted_matrix', JSON.stringify(commentVotedMatrix));
+                syncMovieToStorageArray(selectedMovieGlobal);
+                renderReviews();
+            }
+        }
+
+        function modifyCommentLikeCounter(arr, targetId) {
+            for(let i=0; i<arr.length; i++) {
+                if(arr[i].id === targetId) { arr[i].likes = (arr[i].likes || 0) + 1; return true; }
+                if(arr[i].replies && arr[i].replies.length > 0) {
+                    let res = modifyCommentLikeCounter(arr[i].replies, targetId); if(res) return true;
+                }
+            }
+            return false;
+        }
+
+        function renderReviews() {
+            const container = document.getElementById('reviewsContainer'); container.innerHTML = '';
+            if(!selectedMovieGlobal.reviews || selectedMovieGlobal.reviews.length === 0) {
+                container.innerHTML = `<div class="text-zinc-600 text-center py-2">Hozircha izohlar yo'q...</div>`; return;
+            }
+            container.innerHTML = buildNestedCommentTreeHTML(selectedMovieGlobal.reviews);
+        }
+
+        function buildNestedCommentTreeHTML(commentsArr, isReplyNode = false) {
+            let html = '';
+            commentsArr.forEach(c => {
+                let starBadge = c.rating ? '⭐'.repeat(c.rating) : '';
+                let imgHtml = c.img ? `<img src="${c.img}" class="mt-2 rounded-xl max-h-32 object-contain border border-zinc-800" alt="Comment media">` : '';
+                let likeBtn = ` <button onclick="voteComment(${c.id})" class="text-zinc-500 hover:text-emerald-400">👍 ${c.likes || 0}</button>`;
+                let replyBtn = !isReplyNode ? `• <button onclick="initReplyMode(${c.id}, '${c.name}')" class="text-zinc-500 hover:text-amber-400">Javob berish</button>` : '';
+
+                html += `
+                    <div class="${isReplyNode ? 'reply-box mt-2 bg-zinc-950/40' : 'bg-zinc-900/60'} p-2.5 rounded-xl border border-zinc-800/60">
+                        <div class="flex justify-between font-bold text-zinc-300 text-[10px] mb-1">
+                            <span>⚡ ${c.name}</span>
+                            <span class="text-amber-400 font-mono">${starBadge}</span>
+                        </div>
+                        <p class="text-zinc-400 text-xs leading-relaxed">${c.text}</p>
+                        ${imgHtml}
+                        <div class="text-[9px] mt-2 space-x-2 font-black uppercase text-zinc-600">
+                            ${likeBtn} ${replyBtn}
+                        </div>
+                        ${c.replies && c.replies.length > 0 ? buildNestedCommentTreeHTML(c.replies, true) : ''}
+                    </div>`;
+            });
+            return html;
+        }
+
+        function calculateAverageRating(movie) {
+            if(!movie.reviews || movie.reviews.length === 0) return "5.0";
+            let totalStars = 0; let rootCommentsCount = 0;
+            movie.reviews.forEach(r => { if(r.rating) { totalStars += r.rating; rootCommentsCount++; } });
+            return rootCommentsCount > 0 ? (totalStars / rootCommentsCount).toFixed(1) : "5.0";
+        }
+
+        function updateComputedRatingBadge() {
+            if(selectedMovieGlobal) document.getElementById('computedRatingValue').innerText = calculateAverageRating(selectedMovieGlobal);
+        }
+
+        function toggleFavoriteAction() {
+            if(!selectedMovieGlobal) return;
+            const code = String(selectedMovieGlobal.code);
+            const idx = favorites.indexOf(code);
+            if(idx === -1) { favorites.push(code); showToast("Sevimli ro'yxatingizga qo'shildi.", "success"); }
+            else { favorites.splice(idx, 1); showToast("Sevimli ro'yxatdan olib tashlandi.", "info"); }
+            localStorage.setItem('media_favorites', JSON.stringify(favorites));
+            updateFavoriteButtonUI();
+        }
+
+        function updateFavoriteButtonUI() {
+            if(!selectedMovieGlobal) return;
+            const btn = document.getElementById('favoriteToggleBtn');
+            if(!btn) return;
+            if(favorites.includes(String(selectedMovieGlobal.code))) {
+                btn.className = "bg-red-600 text-white px-4 rounded-xl transition flex items-center justify-center text-lg";
+            } else {
+                btn.className = "bg-zinc-900 border border-zinc-800 hover:border-red-500 text-red-500 px-4 rounded-xl transition flex items-center justify-center text-lg";
+            }
+        }
+
+        function processAndAddMovie() {
+            const type = document.getElementById('movieType').value;
+            const title = document.getElementById('movieTitle').value.trim();
+            const code = document.getElementById('movieCode').value.trim();
+            const year = document.getElementById('movieYear').value.trim() || "Ixtiyoriy";
+            const genre = document.getElementById('movieGenre').value.trim() || "Ixtiyoriy";
+            const desc = document.getElementById('movieDesc').value.trim() || "Ma'lumot kiritilmagan.";
+            const tgLink = document.getElementById('movieTgLink').value.trim() || "https://t.me/MediaHub_Uz_bot";
+            const image = document.getElementById('movieImgLink').value.trim() || "";
+            const video = document.getElementById('movieVideoLink').value.trim() || "";
+            const trailerLink = document.getElementById('movieTrailerLink').value.trim() || "";
+            
+            const lOverride = parseInt(document.getElementById('movieLikesOverride').value) || 0;
+            const dOverride = parseInt(document.getElementById('movieDislikesOverride').value) || 0;
+            const vOverride = parseInt(document.getElementById('movieViewsOverride').value) || 0;
+
+            if(!title || !code) return showToast("Sarlavha va Unikal Kod majburiy hisoblanadi!", "error");
+
+            if(editTargetCode !== null) {
+                let idx = movies.findIndex(m => String(m.code) === String(editTargetCode));
+                if(idx !== -1) {
+                    movies[idx].type = type; movies[idx].title = title; movies[idx].code = code;
+                    movies[idx].year = year; movies[idx].genre = genre; movies[idx].desc = desc;
+                    movies[idx].image = image; movies[idx].video = video; movies[idx].trailerLink = trailerLink;
+                    movies[idx].tgLink = tgLink; movies[idx].likes = lOverride; movies[idx].dislikes = dOverride;
+                    movies[idx].views = vOverride;
+                }
+                editTargetCode = null; showToast("Material muvaffaqiyatli yangilandi.", "success");
+            } else {
+                if(movies.some(m => String(m.code) === String(code))) return showToast("Ushbu unikal kod bazada mavjud!", "error");
+                movies.push({ type, title, code, year, genre, desc, image, video, trailerLink, tgLink, likes: lOverride, dislikes: dOverride, views: vOverride, isPaused: false, reviews: [] });
+                showToast("Yangi resurs muvaffaqiyatli saqlandi.", "success");
+            }
+
+            localStorage.setItem('media_movies', JSON.stringify(movies));
+            resetAdminForm(); refreshAdminDashboard(); renderMovies(); renderCarousel();
+        }
+
+        function refreshAdminDashboard() {
+            const list = document.getElementById('adminMoviesList'); if(!list) return;
+            list.innerHTML = '';
+            movies.forEach(m => {
+                let pauseBtnText = m.isPaused ? "▶️ Unpause" : "⏸️ Pause";
+                list.innerHTML += `
+                    <div class="admin-item bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 flex justify-between items-center text-[11px]" data-title="${m.title.toLowerCase()}" data-code="${m.code}">
+                        <div class="truncate max-w-[140px]"><b>[${m.type.toUpperCase()}]</b> ${m.title}</div>
+                        <div class="flex gap-2 shrink-0 text-[10px]">
+                            <button onclick="toggleAdminMediaStreamState('${m.code}')" class="text-blue-400 font-bold">${pauseBtnText}</button>
+                            <button onclick="startEditMovie('${m.code}')" class="text-amber-500 font-bold hover:underline">Edit</button>
+                            <button onclick="adminDeleteMovie('${m.code}')" class="text-red-500 font-bold hover:underline">O'chirish</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function toggleAdminMediaStreamState(code) {
+            let idx = movies.findIndex(m => String(m.code) === String(code));
+            if(idx !== -1) {
+                movies[idx].isPaused = !movies[idx].isPaused;
+                localStorage.setItem('media_movies', JSON.stringify(movies));
+                refreshAdminDashboard(); renderMovies();
+                showToast(`Media oqimi holati o'zgartirildi`, "info");
+            }
+        }
+
+        function startEditMovie(code) {
+            const m = movies.find(mov => String(mov.code) === String(code));
+            if(!m) return;
+            editTargetCode = code;
+            document.getElementById('movieType').value = m.type;
+            document.getElementById('movieTitle').value = m.title;
+            document.getElementById('movieCode').value = m.code;
+            document.getElementById('movieYear').value = m.year === "Ixtiyoriy" ? "" : m.year;
+            document.getElementById('movieGenre').value = m.genre === "Ixtiyoriy" ? "" : m.genre;
+            document.getElementById('movieDesc').value = m.desc === "Ma'lumot kiritilmagan." ? "" : m.desc;
+            document.getElementById('movieImgLink').value = m.image || "";
+            document.getElementById('movieVideoLink').value = m.video || "";
+            document.getElementById('movieTrailerLink').value = m.trailerLink || "";
+            document.getElementById('movieTgLink').value = m.tgLink || "";
+            document.getElementById('movieLikesOverride').value = m.likes || 0;
+            document.getElementById('movieDislikesOverride').value = m.dislikes || 0;
+            document.getElementById('movieViewsOverride').value = m.views || 0;
+            
+            document.getElementById('adminFormTitle').innerText = "📝 Tahrirlash Rejimi Faol";
+            document.getElementById('adminSubmitBtn').innerText = "O'zgarishlarni Saqlash";
+            document.getElementById('adminCancelEditBtn').classList.remove('hidden');
+
+            renderAdminCommentModifierList(m);
+        }
+
+        function renderAdminCommentModifierList(movie) {
+            const container = document.getElementById('adminReviewControlNode');
+            if(!container) return;
+            container.innerHTML = `<h5 class="text-[10px] text-zinc-400 font-bold mb-2">"${movie.title}" sharhlari:</h5>`;
+            if(!movie.reviews || movie.reviews.length === 0) {
+                container.innerHTML += `<p class="text-zinc-600 py-2 text-center">Izohlar magjud emas.</p>`; return;
+            }
+            movie.reviews.forEach(r => {
+                container.innerHTML += `
+                    <div class="bg-zinc-900 p-1.5 rounded border border-zinc-800 flex justify-between items-center text-[10px]">
+                        <div class="truncate pr-2"><b class="text-amber-500">${r.name}:</b> ${r.text}</div>
+                        <button onclick="adminDeleteComment('${movie.code}', ${r.id})" class="text-red-500 font-bold shrink-0 hover:underline">O'chirish</button>
+                    </div>`;
+            });
+        }
+
+        function adminDeleteComment(movieCode, commentId) {
+            let idx = movies.findIndex(m => String(m.code) === String(movieCode));
+            if(idx !== -1) {
+                movies[idx].reviews = movies[idx].reviews.filter(r => r.id !== commentId);
+                localStorage.setItem('media_movies', JSON.stringify(movies));
+                showToast("Sharh o'chirildi", "info");
+                startEditMovie(movieCode);
+                renderReviews();
+            }
+        }
+
+        function cancelEditMode() { editTargetCode = null; resetAdminForm(); }
+
+        function resetAdminForm() {
+            document.getElementById('movieTitle').value = ''; document.getElementById('movieCode').value = '';
+            document.getElementById('movieDesc').value = ''; document.getElementById('movieImgLink').value = '';
+            document.getElementById('movieVideoLink').value = ''; document.getElementById('movieTrailerLink').value = '';
+            document.getElementById('movieTgLink').value = ''; document.getElementById('movieLikesOverride').value = 0;
+            document.getElementById('movieDislikesOverride').value = 0; document.getElementById('movieViewsOverride').value = 0;
+            document.getElementById('adminFormTitle').innerText = "Multimedia Resurslarini Yuklash Ombori (CRUD)";
+            document.getElementById('adminSubmitBtn').innerText = "Ma'lumotlar omboriga saqlash";
+            document.getElementById('adminCancelEditBtn').classList.add('hidden');
+            document.getElementById('adminReviewControlNode').innerHTML = `<p class="text-zinc-600 text-center py-4">Tahrirlash uchun yuqoridan materialni "Edit" bosing</p>`;
+            document.getElementById('movieImgFile').value = '';
+            document.getElementById('movieVideoFile').value = '';
+            document.getElementById('movieTrailerFile').value = '';
+        }
+
+        function adminDeleteMovie(code) {
+            if(confirm("Ushbu material butunlay o'chirilsinmi?")) {
+                movies = movies.filter(m => String(m.code) !== String(code));
+                localStorage.setItem('media_movies', JSON.stringify(movies));
+                refreshAdminDashboard(); renderMovies(); renderCarousel();
+                showToast("Resurs o'chirildi.", "info");
+                cancelEditMode();
+            }
+        }
+
+        function filterAdminContent() {
+            const val = document.getElementById('adminContentSearch').value.toLowerCase();
+            document.querySelectorAll('.admin-item').forEach(item => {
+                if(item.getAttribute('data-title').includes(val) || String(item.getAttribute('data-code')).includes(val)) item.classList.remove('hidden');
+                else item.classList.add('hidden');
+            });
+        }
+
+        function exportData(type) {
+            if(type === 'media') {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(movies, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr); downloadAnchor.setAttribute("download", "mediahub_backup.json");
+                document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove();
+            }
+        }
+
+        function importData(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (Array.isArray(parsedData)) {
+                        movies = parsedData; localStorage.setItem('media_movies', JSON.stringify(movies));
+                        showToast("Baza muvaffaqiyatli import qilindi!", "success");
+                        refreshAdminDashboard(); renderMovies(); renderCarousel();
+                    }
+                } catch (err) { showToast("JSON o'qishda xatolik.", "error"); }
+            };
+            reader.readAsText(file);
+        }
+
+        function formatTime(seconds) {
+            if(isNaN(seconds)) return "00:00";
+            let min = Math.floor(seconds / 60); let sec = Math.floor(seconds % 60);
+            return (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec);
+        }
+
+        function exitAdminPanel() { window.location.hash = ''; syncMarketingUI(); }
+    </script>
+</body>
+</html>
